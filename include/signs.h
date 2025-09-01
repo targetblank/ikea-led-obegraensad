@@ -18,11 +18,19 @@ extern std::vector<std::vector<int>> weatherIcons;
 
 struct font
 {
-    std::string name;
+    const char* name;
     int sizeX;
     int sizeY;
     int offset;
-    std::vector<std::vector<int>> data;
+    const int* data;  // Points to PROGMEM data
+    int dataSize;     // Number of characters in the font
 };
 
-extern std::vector<font> fonts;
+// Individual font variables stored in PROGMEM
+extern const font font_system;
+extern const font font_bold;
+
+// Helper functions for PROGMEM font access
+const font* getFontById(uint8_t fontid);
+const font* getFontByName(const char* name);
+std::vector<int> getCharacterData(const font& font, int charIndex);

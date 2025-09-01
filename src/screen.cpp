@@ -363,9 +363,9 @@ void Screen_::drawWeather(int x, int y, int weather, uint8_t brightness)
 void Screen_::scrollText(std::string text, int delayTime, uint8_t brightness, uint8_t fontid)
 {
   // lets determine the current font
-  font currentFont = (fontid < fonts.size()) ? fonts[fontid] : fonts[0];
+  const font* currentFont = getFontById(fontid);
 
-  int textWidth = text.length() * (currentFont.sizeX + 1); // charsize + space
+  int textWidth = text.length() * (currentFont->sizeX + 1); // charsize + space
 
   for (int i = -ROWS; i < textWidth; i++)
   { // start with negative screen size, so out of screen to the right
@@ -383,14 +383,16 @@ void Screen_::scrollText(std::string text, int delayTime, uint8_t brightness, ui
       }
       else
       {
-        int xPos = (strPos - skippedChars) * (currentFont.sizeX + 1) - i;
+        int xPos = (strPos - skippedChars) * (currentFont->sizeX + 1) - i;
 
         if (xPos > -6 && xPos < ROWS)
         { // so are we somewhere on screen with the char?
           // ensure that we have a defined char, lets take the first
-          uint8_t currentChar = (((text[strPos] - currentFont.offset) < currentFont.data.size()) && (text[strPos] >= currentFont.offset)) ? text[strPos] : currentFont.offset;
+          uint8_t currentChar = (((text[strPos] - currentFont->offset) < currentFont->dataSize) && (text[strPos] >= currentFont->offset)) ? text[strPos] : currentFont->offset;
 
-          Screen.drawCharacter(xPos, 4, Screen.readBytes(currentFont.data[currentChar - currentFont.offset]), 8);
+          int charIndex = currentChar - currentFont->offset;
+          std::vector<int> charData = getCharacterData(*currentFont, charIndex);
+          Screen.drawCharacter(xPos, 4, Screen.readBytes(charData), 8);
         }
       }
     }
