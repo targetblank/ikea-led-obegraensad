@@ -3,13 +3,17 @@
 void DDPPlugin::setup()
 {
 #ifdef ASYNC_UDP_ENABLED
+    isActive = true;
     udp = new AsyncUDP();
     if (udp->listen(4048))
     {
         Serial.print("DDP server listening at port: 4048");
 
-        udp->onPacket([](AsyncUDPPacket packet)
+        udp->onPacket([this](AsyncUDPPacket packet)
                       {
+            // Check if plugin is still active to avoid accessing freed memory
+            if (!this->isActive) return;
+            
             if (packet.length() >= 10) {  // Basic DDP header check
                 const uint8_t* data = packet.data() + 10;  // Skip header
                 const size_t dataLength = packet.length() - 10;
@@ -34,8 +38,10 @@ void DDPPlugin::setup()
 void DDPPlugin::teardown()
 {
 #ifdef ASYNC_UDP_ENABLED
+    isActive = false;  // Prevent callback execution
     if (udp)
     {
+        udp->close();  // Properly close the UDP connection first
         delete udp;
         udp = nullptr;
     }

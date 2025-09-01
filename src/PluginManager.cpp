@@ -68,7 +68,6 @@ void PluginManager::setActivePlugin(const char *pluginName)
     if (activePlugin)
     {
         activePlugin->teardown();
-        delay(100);
         activePlugin = nullptr;
     }
 

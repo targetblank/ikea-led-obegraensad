@@ -15,6 +15,7 @@ void ArtNetPlugin::setup()
 
 void ArtNetPlugin::teardown()
 {
+    artnet.stop();  // Properly close the ArtNet UDP connection
 }
 
 void ArtNetPlugin::loop()
