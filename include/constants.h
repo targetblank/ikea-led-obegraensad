@@ -19,6 +19,14 @@
 #define PIN_BUTTON 2
 #endif
 
+// #ifdef ESP8266
+// #define PIN_ENABLE 14 // D5 
+// #define PIN_DATA 12   // D6 MOSI (Master Out Slave In)
+// #define PIN_CLOCK 13  // D7 CLK
+// #define PIN_LATCH 15  // D8 LATCH == CLA = CS,
+// #define PIN_BUTTON 2  // D4
+// #endif
+
 // disable if you do not want to use the internal storage
 // https://randomnerdtutorials.com/esp32-save-data-permanently-preferences/
 // timer1 on esp8266 is not compatible with flash file system reads
