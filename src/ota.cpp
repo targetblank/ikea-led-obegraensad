@@ -19,6 +19,7 @@ void onOTAStart()
     {
         Screen.setPixelAtIndex(i, bits[i]);
     }
+    Screen.swapBuffers();
 }
 
 void onOTAProgress(size_t current, size_t final)
@@ -48,10 +49,12 @@ void onOTAEnd(bool success)
     {
         Screen.setPixelAtIndex(i, bits[i]);
     }
+    Screen.swapBuffers();
 
     delay(1000);
     currentStatus = NONE;
     Screen.loadFromStorage();
+    Screen.swapBuffers();
 }
 
 void initOTA(AsyncWebServer &server)

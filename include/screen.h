@@ -12,7 +12,8 @@ private:
   Screen_() = default;
 
   uint8_t brightness_ = 255;
-  uint8_t renderBuffer_[ROWS * COLS];
+  uint8_t renderBuffer_[ROWS * COLS];      // Front buffer - read by display ISR
+  uint8_t backBuffer_[ROWS * COLS];        // Back buffer - written by plugins
   uint8_t rotatedRenderBuffer_[ROWS * COLS];
   uint8_t cache_[ROWS * COLS];
   uint8_t positions[ROWS * COLS] = {
@@ -55,6 +56,7 @@ public:
 
   void clear();
   void clearRect(int x, int y, int width, int height);
+  void swapBuffers();
 
   void setPixel(uint8_t x, uint8_t y, uint8_t value, uint8_t brightness = 255);
   void setPixelAtIndex(uint8_t index, uint8_t value, uint8_t brightness = 255);

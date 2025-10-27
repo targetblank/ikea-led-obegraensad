@@ -123,6 +123,7 @@ void PluginManager::runActivePlugin()
         currentStatus != LOADING && currentStatus != WSBINARY)
     {
         activePlugin->loop();
+        Screen.swapBuffers();
     }
 }
 

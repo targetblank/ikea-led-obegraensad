@@ -35,30 +35,30 @@ void Screen_::setRenderBuffer(const uint8_t *renderBuffer, bool grays)
 {
   if (grays)
   {
-    memcpy(renderBuffer_, renderBuffer, ROWS * COLS);
+    memcpy(backBuffer_, renderBuffer, ROWS * COLS);
   }
   else
   {
     for (int i = 0; i < ROWS * COLS; i++)
     {
-      renderBuffer_[i] = renderBuffer[i] * 255;
+      backBuffer_[i] = renderBuffer[i] * 255;
     }
   }
 }
 
 uint8_t *Screen_::getRenderBuffer()
 {
-  return renderBuffer_;
+  return backBuffer_;
 }
 
 uint8_t Screen_::getBufferIndex(int index)
 {
-  return renderBuffer_[index];
+  return backBuffer_[index];
 }
 
 void Screen_::clear()
 {
-  memset(renderBuffer_, 0, ROWS * COLS);
+  memset(backBuffer_, 0, ROWS * COLS);
 }
 
 void Screen_::clearRect(int x, int y, int width, int height)
@@ -82,8 +82,15 @@ void Screen_::clearRect(int x, int y, int width, int height)
   width = std::min(width, COLS - x);
   for (int row = y; row < y + height; row++)
   {
-    memset(renderBuffer_ + (row * COLS + x), 0, width);
+    memset(backBuffer_ + (row * COLS + x), 0, width);
   }
+}
+
+void Screen_::swapBuffers()
+{
+  // Atomically copy back buffer to front buffer
+  // This is the only function that modifies renderBuffer_ (front buffer)
+  memcpy(renderBuffer_, backBuffer_, ROWS * COLS);
 }
 
 // CACHE START
@@ -99,7 +106,7 @@ bool Screen_::isCacheEmpty() const
 
 void Screen_::cacheCurrent()
 {
-  memcpy(cache_, renderBuffer_, ROWS * COLS);
+  memcpy(cache_, backBuffer_, ROWS * COLS);
 }
 
 void Screen_::restoreCache()
@@ -118,7 +125,7 @@ void Screen_::loadFromStorage()
   if (currentStatus == NONE)
   {
     clear();
-    storage.getBytes("data", renderBuffer_, ROWS * COLS);
+    storage.getBytes("data", backBuffer_, ROWS * COLS);
   }
   else
   {
@@ -135,7 +142,7 @@ void Screen_::persist()
 {
 #ifdef ENABLE_STORAGE
   storage.begin("led-wall");
-  storage.putBytes("data", renderBuffer_, ROWS * COLS);
+  storage.putBytes("data", backBuffer_, ROWS * COLS);
   storage.putUInt("brightness", brightness_);
   storage.putUInt("rotation", currentRotation);
   storage.end();
@@ -180,14 +187,14 @@ void Screen_::setPixelAtIndex(uint8_t index, uint8_t value, uint8_t brightness)
 {
   if (index >= COLS * ROWS)
     return;
-  renderBuffer_[index] = value <= 0 || brightness <= 0 ? 0 : (brightness > 255 ? 255 : brightness);
+  backBuffer_[index] = value <= 0 || brightness <= 0 ? 0 : (brightness > 255 ? 255 : brightness);
 }
 
 void Screen_::setPixel(uint8_t x, uint8_t y, uint8_t value, uint8_t brightness)
 {
   if (x >= COLS || y >= ROWS)
     return;
-  renderBuffer_[y * COLS + x] = value <= 0 || brightness <= 0 ? 0 : (brightness > 255 ? 255 : brightness);
+  backBuffer_[y * COLS + x] = value <= 0 || brightness <= 0 ? 0 : (brightness > 255 ? 255 : brightness);
 }
 
 void Screen_::setCurrentRotation(int rotation, bool shouldPersist)
@@ -395,6 +402,7 @@ void Screen_::scrollText(std::string text, int delayTime, uint8_t brightness, ui
       }
     }
 
+    swapBuffers();
     delay(delayTime);
   }
 }
@@ -432,6 +440,7 @@ void Screen_::scrollGraph(std::vector<int> graph, int miny, int maxy, int delayT
         y1 = y2; // this value is next values previous value
       }
     }
+    swapBuffers();
     delay(delayTime);
   }
 }
