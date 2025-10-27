@@ -80,7 +80,15 @@ void Messages_::scroll()
     }
   }
 
-  Screen.loadFromStorage();
+  // Only reload from storage if no plugin has rendered recently
+  // This prevents race condition where loadFromStorage() clears the screen
+  // while a plugin is in the middle of rendering (e.g., BigClockPlugin)
+  // See: https://github.com/ph1p/ikea-led-obegraensad/issues/154
+  unsigned long timeSinceLastRender = millis() - Screen.getLastRenderTime();
+  if (timeSinceLastRender > 100) // 100ms grace period
+  {
+    Screen.loadFromStorage();
+  }
 }
 
 void Messages_::scrollMessageEveryMinute()

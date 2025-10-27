@@ -59,6 +59,7 @@ uint8_t Screen_::getBufferIndex(int index)
 void Screen_::clear()
 {
   memset(renderBuffer_, 0, ROWS * COLS);
+  markRenderTime();
 }
 
 void Screen_::clearRect(int x, int y, int width, int height)
@@ -84,6 +85,17 @@ void Screen_::clearRect(int x, int y, int width, int height)
   {
     memset(renderBuffer_ + (row * COLS + x), 0, width);
   }
+  markRenderTime();
+}
+
+void Screen_::markRenderTime()
+{
+  lastRenderTime_ = millis();
+}
+
+unsigned long Screen_::getLastRenderTime() const
+{
+  return lastRenderTime_;
 }
 
 // CACHE START
@@ -345,6 +357,7 @@ void Screen_::drawNumbers(int x, int y, std::vector<int> numbers, uint8_t bright
   {
     drawCharacter(x + (i * 5), y, readBytes(smallNumbers[numbers.at(i)]), 4, brightness);
   }
+  markRenderTime();
 }
 
 void Screen_::drawBigNumbers(int x, int y, std::vector<int> numbers, uint8_t brightness)
@@ -353,6 +366,7 @@ void Screen_::drawBigNumbers(int x, int y, std::vector<int> numbers, uint8_t bri
   {
     drawCharacter(x + (i * 8), y, readBytes(bigNumbers[numbers.at(i)]), 8, brightness);
   }
+  markRenderTime();
 }
 
 void Screen_::drawWeather(int x, int y, int weather, uint8_t brightness)
