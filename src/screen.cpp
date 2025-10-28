@@ -88,6 +88,12 @@ void Screen_::clearRect(int x, int y, int width, int height)
 
 void Screen_::swapBuffers()
 {
+  // Only swap if buffers are different - eliminates flickering and unnecessary copies
+  if (memcmp(renderBuffer_, backBuffer_, ROWS * COLS) == 0)
+  {
+    return; // Buffers identical, no swap needed
+  }
+
   // Atomically copy back buffer to front buffer
   // This is the only function that modifies renderBuffer_ (front buffer)
   memcpy(renderBuffer_, backBuffer_, ROWS * COLS);
