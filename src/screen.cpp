@@ -5,7 +5,28 @@
 #define TIMER_INTERVAL_US 200
 #define GRAY_LEVELS 64 // must be a power of two
 
+// Helper macros for mutex protection on ESP32
+#ifdef ESP32
+#define LOCK_BACK_BUFFER() xSemaphoreTake(backBufferMutex_, portMAX_DELAY)
+#define UNLOCK_BACK_BUFFER() xSemaphoreGive(backBufferMutex_)
+#else
+#define LOCK_BACK_BUFFER()
+#define UNLOCK_BACK_BUFFER()
+#endif
+
 using namespace std;
+
+Screen_::Screen_()
+{
+#ifdef ESP32
+  // Create mutex for protecting backBuffer_ from concurrent access
+  // This must happen in constructor, before any Screen methods are called
+  backBufferMutex_ = xSemaphoreCreateMutex();
+  if (backBufferMutex_ == NULL) {
+    Serial.println("ERROR: Failed to create backBuffer mutex!");
+  }
+#endif
+}
 
 uint8_t Screen_::getCurrentBrightness() const
 {
@@ -33,6 +54,7 @@ void Screen_::setBrightness(uint8_t brightness, bool shouldStore)
 
 void Screen_::setRenderBuffer(const uint8_t *renderBuffer, bool grays)
 {
+  LOCK_BACK_BUFFER();
   if (grays)
   {
     memcpy(backBuffer_, renderBuffer, ROWS * COLS);
@@ -44,21 +66,29 @@ void Screen_::setRenderBuffer(const uint8_t *renderBuffer, bool grays)
       backBuffer_[i] = renderBuffer[i] * 255;
     }
   }
+  UNLOCK_BACK_BUFFER();
 }
 
 uint8_t *Screen_::getRenderBuffer()
 {
+  // Note: Returns pointer to backBuffer_ - caller must hold lock if modifying
+  // This is safe because callers use it read-only or via setRenderBuffer
   return backBuffer_;
 }
 
 uint8_t Screen_::getBufferIndex(int index)
 {
-  return backBuffer_[index];
+  LOCK_BACK_BUFFER();
+  uint8_t value = backBuffer_[index];
+  UNLOCK_BACK_BUFFER();
+  return value;
 }
 
 void Screen_::clear()
 {
+  LOCK_BACK_BUFFER();
   memset(backBuffer_, 0, ROWS * COLS);
+  UNLOCK_BACK_BUFFER();
 }
 
 void Screen_::clearRect(int x, int y, int width, int height)
@@ -79,24 +109,32 @@ void Screen_::clearRect(int x, int y, int width, int height)
     return;
   }
 
+  LOCK_BACK_BUFFER();
   width = std::min(width, COLS - x);
   for (int row = y; row < y + height; row++)
   {
     memset(backBuffer_ + (row * COLS + x), 0, width);
   }
+  UNLOCK_BACK_BUFFER();
 }
 
 void Screen_::swapBuffers()
 {
+  LOCK_BACK_BUFFER();
+
   // Only swap if buffers are different - eliminates flickering and unnecessary copies
   if (memcmp(renderBuffer_, backBuffer_, ROWS * COLS) == 0)
   {
+    UNLOCK_BACK_BUFFER();
     return; // Buffers identical, no swap needed
   }
 
   // Atomically copy back buffer to front buffer
   // This is the only function that modifies renderBuffer_ (front buffer)
+  // Mutex ensures backBuffer_ is stable during this copy
   memcpy(renderBuffer_, backBuffer_, ROWS * COLS);
+
+  UNLOCK_BACK_BUFFER();
 }
 
 // CACHE START
@@ -112,7 +150,9 @@ bool Screen_::isCacheEmpty() const
 
 void Screen_::cacheCurrent()
 {
+  LOCK_BACK_BUFFER();
   memcpy(cache_, backBuffer_, ROWS * COLS);
+  UNLOCK_BACK_BUFFER();
 }
 
 void Screen_::restoreCache()
@@ -128,15 +168,17 @@ void Screen_::loadFromStorage()
   storage.begin("led-wall", true);
   setBrightness(255);
 
+  LOCK_BACK_BUFFER();
   if (currentStatus == NONE)
   {
-    clear();
+    memset(backBuffer_, 0, ROWS * COLS);
     storage.getBytes("data", backBuffer_, ROWS * COLS);
   }
   else
   {
     storage.getBytes("data", cache_, ROWS * COLS);
   }
+  UNLOCK_BACK_BUFFER();
 
   setBrightness(storage.getUInt("brightness", 255));
   setCurrentRotation(storage.getUInt("rotation", 0));
@@ -148,7 +190,11 @@ void Screen_::persist()
 {
 #ifdef ENABLE_STORAGE
   storage.begin("led-wall");
+
+  LOCK_BACK_BUFFER();
   storage.putBytes("data", backBuffer_, ROWS * COLS);
+  UNLOCK_BACK_BUFFER();
+
   storage.putUInt("brightness", brightness_);
   storage.putUInt("rotation", currentRotation);
   storage.end();
@@ -193,14 +239,20 @@ void Screen_::setPixelAtIndex(uint8_t index, uint8_t value, uint8_t brightness)
 {
   if (index >= COLS * ROWS)
     return;
+
+  LOCK_BACK_BUFFER();
   backBuffer_[index] = value <= 0 || brightness <= 0 ? 0 : (brightness > 255 ? 255 : brightness);
+  UNLOCK_BACK_BUFFER();
 }
 
 void Screen_::setPixel(uint8_t x, uint8_t y, uint8_t value, uint8_t brightness)
 {
   if (x >= COLS || y >= ROWS)
     return;
+
+  LOCK_BACK_BUFFER();
   backBuffer_[y * COLS + x] = value <= 0 || brightness <= 0 ? 0 : (brightness > 255 ? 255 : brightness);
+  UNLOCK_BACK_BUFFER();
 }
 
 void Screen_::setCurrentRotation(int rotation, bool shouldPersist)

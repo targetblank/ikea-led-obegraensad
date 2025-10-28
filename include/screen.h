@@ -6,16 +6,27 @@
 #include "signs.h"
 #include "constants.h"
 #include "storage.h"
+
+#ifdef ESP32
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+#endif
+
 class Screen_
 {
 private:
-  Screen_() = default;
+  Screen_();  // Constructor now does initialization
 
   uint8_t brightness_ = 255;
   uint8_t renderBuffer_[ROWS * COLS];      // Front buffer - read by display ISR
   uint8_t backBuffer_[ROWS * COLS];        // Back buffer - written by plugins
   uint8_t rotatedRenderBuffer_[ROWS * COLS];
   uint8_t cache_[ROWS * COLS];
+
+#ifdef ESP32
+  SemaphoreHandle_t backBufferMutex_;      // Protects backBuffer_ from concurrent access
+#endif
+
   uint8_t positions[ROWS * COLS] = {
       0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
       0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
