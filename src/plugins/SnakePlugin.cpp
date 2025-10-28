@@ -337,7 +337,7 @@ void SnakePlugin::loop()
   {
   case SnakePlugin::GAME_STATE_RUNNING:
     this->findDirection();
-    Screen.swapBuffers();
+    Screen.swapBuffers(true);
     delay(100);
     break;
   case SnakePlugin::GAME_STATE_END:

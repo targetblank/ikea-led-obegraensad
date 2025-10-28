@@ -22,14 +22,14 @@ void FireworkPlugin::explode(int x, int y)
   for (int radius = 1; radius <= maxRadius; radius++)
   {
     drawExplosion(x, y, radius, 255);
-    Screen.swapBuffers();
+    Screen.swapBuffers(true); // Wait for PWM cycle start to reduce flicker
     delay(explosionDelay);
   }
 
   for (int brightness = 248; brightness >= 0; brightness -= 8)
   {
     drawExplosion(x, y, maxRadius, brightness);
-    Screen.swapBuffers();
+    Screen.swapBuffers(true); // Wait for PWM cycle start for smooth fade
     delay(fadeDelay);
   }
 }

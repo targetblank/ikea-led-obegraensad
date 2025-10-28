@@ -118,7 +118,7 @@ void Screen_::clearRect(int x, int y, int width, int height)
   UNLOCK_BACK_BUFFER();
 }
 
-void Screen_::swapBuffers()
+void Screen_::swapBuffers(bool waitForCycleStart)
 {
   LOCK_BACK_BUFFER();
 
@@ -129,12 +129,35 @@ void Screen_::swapBuffers()
     return; // Buffers identical, no swap needed
   }
 
+  // Optional: Wait for PWM cycle to restart for smoother brightness transitions
+  // This reduces temporal aliasing flicker when displaying multiple brightness levels
+  if (waitForCycleStart)
+  {
+    // Wait for PWM cycle to restart (max 12.8ms wait at 64 gray levels)
+    unsigned long timeout = millis() + 15; // 15ms timeout to prevent hanging
+    while (!isPWMCycleStart() && millis() < timeout)
+    {
+      yield(); // Allow other tasks to run (FreeRTOS task switch on ESP32)
+    }
+    clearPWMCycleFlag();
+  }
+
   // Atomically copy back buffer to front buffer
   // This is the only function that modifies renderBuffer_ (front buffer)
   // Mutex ensures backBuffer_ is stable during this copy
   memcpy(renderBuffer_, backBuffer_, ROWS * COLS);
 
   UNLOCK_BACK_BUFFER();
+}
+
+bool Screen_::isPWMCycleStart() const
+{
+  return cycleStartFlag_;
+}
+
+void Screen_::clearPWMCycleFlag()
+{
+  cycleStartFlag_ = false;
 }
 
 // CACHE START
@@ -313,11 +336,19 @@ ICACHE_RAM_ATTR void Screen_::_render()
 
   static unsigned char counter = 0;
 
+  // Set flag when PWM cycle starts (counter wraps to 0)
+  // This allows swapBuffers() to synchronize with cycle start for flicker reduction
+  if (counter == 0)
+  {
+    cycleStartFlag_ = true;
+  }
+
   for (int idx = 0; idx < ROWS * COLS; idx++)
   {
     bits[idx >> 3] |= (buf[positions[idx]] > counter ? 0x80 : 0) >> (idx & 7);
   }
 
+  pwmCounter_ = counter;
   counter += (256 / GRAY_LEVELS);
 
   digitalWrite(PIN_LATCH, LOW);

@@ -27,6 +27,10 @@ private:
   SemaphoreHandle_t backBufferMutex_;      // Protects backBuffer_ from concurrent access
 #endif
 
+  // PWM cycle synchronization for flicker reduction
+  volatile uint8_t pwmCounter_ = 0;        // Current PWM counter value (0-255)
+  volatile bool cycleStartFlag_ = false;   // Set to true when PWM cycle restarts
+
   uint8_t positions[ROWS * COLS] = {
       0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
       0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
@@ -67,7 +71,10 @@ public:
 
   void clear();
   void clearRect(int x, int y, int width, int height);
-  void swapBuffers();
+  void swapBuffers(bool waitForCycleStart = false);
+
+  bool isPWMCycleStart() const;
+  void clearPWMCycleFlag();
 
   void setPixel(uint8_t x, uint8_t y, uint8_t value, uint8_t brightness = 255);
   void setPixelAtIndex(uint8_t index, uint8_t value, uint8_t brightness = 255);

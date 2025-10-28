@@ -60,7 +60,7 @@ void RainPlugin::loop()
     }
   }
 
-  Screen.swapBuffers();
+  Screen.swapBuffers(true); // Wait for PWM cycle start to reduce flicker with dimming trails
   delay(96);
 }
 

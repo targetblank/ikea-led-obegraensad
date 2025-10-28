@@ -20,7 +20,7 @@ void BreakoutPlugin::initBricks()
     this->bricks[i].y = i / this->X_MAX;
     Screen.setPixelAtIndex(this->bricks[i].y * this->X_MAX + this->bricks[i].x, this->LED_TYPE_ON, 50);
 
-    Screen.swapBuffers();
+    Screen.swapBuffers(true);
     delay(25);
   }
 }
@@ -202,7 +202,7 @@ void BreakoutPlugin::loop()
   case this->GAME_STATE_RUNNING:
     this->updateBall();
     this->updatePaddle();
-    Screen.swapBuffers();
+    Screen.swapBuffers(true);
     delay(random(100, 200));
     break;
   case this->GAME_STATE_END:
