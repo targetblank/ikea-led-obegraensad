@@ -42,6 +42,7 @@ void AnimationPlugin::loop()
         {
             this->step = 0;
         }
+        Screen.swapBuffers();
         delay(400);
     }
 }

@@ -2,8 +2,9 @@
 
 void DrawPlugin::setup()
 {
-  delay(50);
   Screen.clear();
+  Screen.swapBuffers();
+  delay(50);
   if (Screen.isCacheEmpty())
   {
     Screen.loadFromStorage();

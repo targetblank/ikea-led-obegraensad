@@ -19,6 +19,7 @@ void CirclePlugin::loop()
     {
         this->circleStep = 7;
     }
+    Screen.swapBuffers();
     delay(200);
 }
 
